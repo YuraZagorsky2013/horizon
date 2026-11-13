@@ -1,0 +1,41 @@
+name: Horizon
+options:
+  bundleIdPrefix: dev.horizon
+  deploymentTarget:
+    iOS: "15.0"
+
+targets:
+  Horizon:
+    type: application
+    platform: iOS
+    sources:
+      - path: main.m
+      - path: horizon_ios.h
+    info:
+      path: Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.horizon.client
+        PRODUCT_NAME: Horizon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+        CODE_SIGN_STYLE: Automatic
+        LIBRARY_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../target/$(RUST_TARGET)/release"
+        HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)"
+        OTHER_LDFLAGS: "$(inherited) -lhorizon_ios -framework Foundation -framework UIKit -framework Metal -framework QuartzCore -framework CoreGraphics -framework AVFoundation -framework GameController"
+        "RUST_TARGET[sdk=iphoneos*]": aarch64-apple-ios
+        "RUST_TARGET[sdk=iphonesimulator*][arch=arm64]": aarch64-apple-ios-sim
+        "RUST_TARGET[sdk=iphonesimulator*][arch=x86_64]": x86_64-apple-ios
+    preBuildScripts:
+      - name: Build Horizon Rust engine
+        basedOnDependencyAnalysis: false
+        script: |
+          set -eu
+          case "$PLATFORM_NAME:$CURRENT_ARCH" in
+            iphoneos:*) RUST_TARGET=aarch64-apple-ios ;;
+            iphonesimulator:arm64) RUST_TARGET=aarch64-apple-ios-sim ;;
+            iphonesimulator:x86_64) RUST_TARGET=x86_64-apple-ios ;;
+            *) echo "Unsupported iOS build destination: $PLATFORM_NAME/$CURRENT_ARCH"; exit 1 ;;
+          esac
+          rustup target add "$RUST_TARGET"
+          cargo build --manifest-path "$SRCROOT/../../Cargo.toml" --package horizon-ios --release --target "$RUST_TARGET"
