@@ -15,6 +15,7 @@ crate-type = ["staticlib"]
 # Reuse the existing client and renderer. Controllers are deliberately disabled
 # until an iOS-native controller backend is wired into the shared input layer.
 horizon-client = { path = "../horizon-client", default-features = false, features = ["audio"] }
+horizon-prepare = { path = "../horizon-prepare" }
 # The first-run downloader is shared with Android; only its JNI adapter is platform-gated.
 log = "0.4"
 serde_json = { version = "1.0.151", features = ["raw_value"] }
