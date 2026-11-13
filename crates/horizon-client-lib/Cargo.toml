@@ -49,7 +49,7 @@ horizon-narrator = { path = "../horizon-narrator" }
 # Their runtime is the `mods` feature.
 horizon-mods = { path = "../horizon-mods", default-features = false, features = ["index"] }
 wgpu = { version = "30.0.1", default-features = false, features = ["std", "parking_lot", "vulkan", "metal", "wgsl", "naga-ir"] }
-winit = "0.30.13"
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 pollster = "0.4"
 bytemuck = { version = "1.24", features = ["derive"] }
 glam = "0.30"
@@ -86,6 +86,10 @@ ureq = { version = "2", default-features = false, features = ["tls"] }
 unicode-bidi = "0.3.18"
 # `LevelStorageAccess.estimateDiskSpace`: usable disk space, without unsafe code on Windows.
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Desktop Linux only. Apple targets use the native UIKit/Metal backend and do not build Wayland.
+winit = { version = "0.30.13", default-features = false, features = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"] }
 
 [target.'cfg(unix)'.dependencies]
 # The server thread's CPU time per tick (`HORIZON_SPIKES`, spans.rs).
