@@ -1785,11 +1785,12 @@ name = "horizon-ios"
 version = "0.1.0"
 dependencies = [
  "horizon-client",
+ "horizon-prepare",
  "log",
  "serde_json",
  "sha1",
  "ureq",
- "zip 9.1.3",
+ "zip 9.4.1",
 ]
 
 [[package]]
