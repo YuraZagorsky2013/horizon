@@ -56,13 +56,13 @@ a small C bridge for readiness, start, and progress polling.
 
 This reuses the pinned Mojang manifest/client verification, SHA-1 checked
 downloads, resumable partial files, parallel asset fetching, and safe derived
-pack extraction. The native iOS onboarding screen is not connected yet.
+pack extraction. A native UIKit onboarding screen is now included in the Xcode target. It imports the derived ZIP via the Files document picker, starts the shared setup routine, and polls progress/errors after winit's one UIKit launch sequence.
 
 ### Not yet implemented or validated
 
-- The iOS onboarding UI still needs to call the shared setup bridge and display progress/errors.
+- The onboarding overlay still needs validation on a simulator and physical device; it is presented after the winit launch notification.
 - Microsoft account sign-in and token refresh UI have not yet been ported.
-- iOS Files/document-picker import and export flows are not yet implemented; the current scaffold exposes the app Documents directory through file sharing.
+- Files document-picker import for the derived ZIP is implemented in the onboarding screen; general world/resource-pack import and export workflows remain pending.
 - Touch, external keyboard, controller, text-input, and audio behavior still need device-level verification.
 - The Rust targets and Xcode project have not yet completed a successful Apple-toolchain build in this environment. No IPA or working device build is claimed.
 
