@@ -3,8 +3,9 @@
 
 int main(int argc, char *argv[]) {
     @autoreleasepool {
-        // winit's iOS EventLoop::run_app invokes UIApplicationMain. Do not
-        // start a second SwiftUI/UIKit application lifecycle here.
+        // Register a lightweight UIKit onboarding overlay before winit starts its
+        // single UIApplicationMain lifecycle.
+        horizon_install_setup_ui();
         horizon_start();
     }
     return 0;
