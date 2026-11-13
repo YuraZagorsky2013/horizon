@@ -1,0 +1,20 @@
+[package]
+name = "horizon-ios"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+rust-version = "1.90"
+description = "Horizon iOS and iPadOS application host"
+publish = false
+
+[lib]
+name = "horizon_ios"
+crate-type = ["staticlib"]
+
+[dependencies]
+# Reuse the existing client and renderer. Controllers are deliberately disabled
+# until an iOS-native controller backend is wired into the shared input layer.
+horizon-client = { path = "../horizon-client", default-features = false, features = ["audio"] }
+
+[lints]
+workspace = true
