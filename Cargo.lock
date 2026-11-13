@@ -1781,6 +1781,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "horizon-ios"
+version = "0.1.0"
+dependencies = [
+ "horizon-client",
+]
+
+[[package]]
 name = "horizon-items"
 version = "0.1.0"
 dependencies = [
