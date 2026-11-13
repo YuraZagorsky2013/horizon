@@ -38,15 +38,23 @@ The Rust targets used are:
 
 ## Game resources
 
-This bootstrap does not yet include the Android first-run downloader, Microsoft
-account UI, or iOS document-picker import flow. Until those are ported, place a
-prepared Horizon `resources` directory in the app's `Documents/Horizon`
-folder. File Sharing is enabled in the app's Info.plist so the folder can be
-managed through Files or Finder.
+The existing Android first-run downloader and derived-pack extractor are now
+shared with the iOS crate. Its verified Mojang downloads, SHA-1 checks, parallel
+asset downloads, resumable partial files, and derived-pack validation are reused
+without changing the renderer or world pipeline.
+
+The iOS static library exposes a small C bridge in `horizon_ios.h`:
+`horizon_setup_ready()`, `horizon_setup_start()`, and
+`horizon_setup_status()`. A native onboarding screen still needs to call this
+bridge and present progress/errors. Until that UI is connected, place a prepared
+Horizon `resources` directory in the app's `Documents/Horizon` folder.
+File Sharing is enabled in the app's Info.plist so the folder can be managed
+through Files or Finder.
+
+Microsoft account UI and iOS document-picker import/export are still pending.
 
 Worlds, resource packs, mods, and shader packs use the existing folder names
-under `Documents/Horizon`. The next platform milestone is the iOS onboarding
-and file-import experience, followed by device validation.
+under `Documents/Horizon`. The next platform milestone is connecting the setup bridge to a native iOS onboarding screen and adding file-import/export, followed by device validation.
 
 ## Current validation status
 
