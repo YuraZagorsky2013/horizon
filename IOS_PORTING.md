@@ -63,7 +63,10 @@ pack extraction. A native UIKit onboarding screen is now included in the Xcode t
 - The onboarding overlay still needs validation on a simulator and physical device; it is presented after the winit launch notification.
 - Microsoft account sign-in and token refresh UI have not yet been ported.
 - Files document-picker import for the derived ZIP is implemented in the onboarding screen; general world/resource-pack import and export workflows remain pending.
-- Touch, external keyboard, controller, text-input, and audio behavior still need device-level verification.
+- The vendored winit iOS backend already translates UIKit touch/gesture events and basic text input into winit events, and observes active/background/foreground/memory-warning notifications. The game-level control mapping, external keyboard behavior, and controller support still need device verification.
+- The client renderer uses optional cpal output with Symphonia Vorbis decoding; the iOS Core Audio backend and audio-session behavior have not been validated.
+- wgpu enables its Metal feature and winit's iOS window backend provides the UIKit/Metal presentation path, but the actual Horizon renderer surface creation and GPU pipeline have not yet passed an iOS build or device test.
+- Android Microsoft sign-in is implemented in Java (`Msa`, `MsaLoginActivity`, `ProfileActivity`) and publishes a private session JSON consumed by `android_msa.rs`. The WebView login UI and Android JNI refresh callback are not portable. The iOS port needs an external-browser OAuth flow such as `ASWebAuthenticationSession` plus secure Keychain token storage; do not copy the Android WebView credential flow.
 - The Rust targets and Xcode project have not yet completed a successful Apple-toolchain build in this environment. No IPA or working device build is claimed.
 
 The next milestone is a successful device/simulator cross-compile, followed by resource onboarding and platform input/lifecycle validation.
@@ -84,7 +87,7 @@ Implement iOS/iPadOS touch input and map it into the existing shared input abstr
 
 ### 4. Files and permissions
 
-Replace Android-specific storage assumptions with the iOS app sandbox and document-picker workflows. Keep world saves, resource packs, configuration, and downloaded game assets in the existing shared formats. Make import/export explicit and user-controlled.
+The first-run screen uses `UIDocumentPickerViewController` to import the required derived ZIP into `Documents/Horizon/horizon-derived.zip`. General world, resource-pack, mod, and shader-pack import/export workflows still need dedicated picker flows. Keep world saves, resource packs, configuration, and downloaded game assets in the existing shared formats. Make import/export explicit and user-controlled.
 
 ### 5. Audio
 
