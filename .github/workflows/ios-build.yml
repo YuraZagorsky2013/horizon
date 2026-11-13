@@ -15,6 +15,7 @@ on:
       - "crates/horizon-client-lib/**"
       - "crates/horizon-client-render/**"
       - "crates/horizon-client-input/**"
+      - "crates/horizon-android/**"
       - "packaging/ios/**"
       - "IOS_PORTING.md"
       - "third_party/winit/**"
