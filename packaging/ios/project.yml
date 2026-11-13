@@ -10,6 +10,7 @@ targets:
     platform: iOS
     sources:
       - path: main.m
+      - path: setup_ui.m
       - path: horizon_ios.h
     info:
       path: Info.plist
