@@ -56,7 +56,7 @@ a small C bridge for readiness, start, and progress polling.
 
 This reuses the pinned Mojang manifest/client verification, SHA-1 checked
 downloads, resumable partial files, parallel asset fetching, and safe derived
-pack extraction. A native UIKit onboarding screen is now included in the Xcode target. It imports the derived ZIP via the Files document picker, starts the shared setup routine, and polls progress/errors after winit's one UIKit launch sequence.
+pack extraction. A native UIKit onboarding screen is now included in the Xcode target. It imports the derived ZIP via the Files document picker, starts the shared setup routine, and polls progress/errors after winit's one UIKit launch sequence. When resources become ready, it asks the user to relaunch Horizon because the existing game entry point has already entered its no-resources screen.
 
 ### Not yet implemented or validated
 
