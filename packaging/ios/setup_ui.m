@@ -9,6 +9,7 @@
 @property(nonatomic, strong) UIProgressView *progressView;
 @property(nonatomic, strong) UITextField *urlField;
 @property(nonatomic, strong) UIButton *startButton;
+@property(nonatomic, strong) UIButton *importButton;
 @property(nonatomic, strong) NSTimer *statusTimer;
 @property(nonatomic, assign) BOOL started;
 @end
@@ -51,10 +52,10 @@
     self.urlField.backgroundColor = [UIColor colorWithWhite:1 alpha:0.08];
     self.urlField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:self.urlField.placeholder attributes:@{NSForegroundColorAttributeName: [UIColor colorWithWhite:0.58 alpha:1.0]}];
 
-    UIButton *importButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    [importButton setTitle:@"Выбрать ZIP в «Файлах»" forState:UIControlStateNormal];
-    importButton.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
-    [importButton addTarget:self action:@selector(importArchive) forControlEvents:UIControlEventTouchUpInside];
+    self.importButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [self.importButton setTitle:@"Выбрать ZIP в «Файлах»" forState:UIControlStateNormal];
+    self.importButton.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+    [self.importButton addTarget:self action:@selector(importArchive) forControlEvents:UIControlEventTouchUpInside];
 
     self.startButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [self.startButton setTitle:@"Начать подготовку" forState:UIControlStateNormal];
@@ -74,7 +75,7 @@
     self.errorLabel.numberOfLines = 0;
     self.errorLabel.font = [UIFont systemFontOfSize:12];
 
-    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[title, subtitle, self.stageLabel, self.detailLabel, self.urlField, importButton, self.startButton, self.progressView, self.errorLabel]];
+    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:@[title, subtitle, self.stageLabel, self.detailLabel, self.urlField, self.importButton, self.startButton, self.progressView, self.errorLabel]];
     stack.axis = UILayoutConstraintAxisVertical;
     stack.spacing = 18;
     stack.alignment = UIStackViewAlignmentFill;
@@ -137,12 +138,26 @@
 
 - (void)startSetup {
     if (self.started) return;
-    NSString *url = self.urlField.text ?: @"";
+    NSString *url = [self.urlField.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet] ?: @"";
+    if (url.length == 0) {
+        NSURL *documents = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] firstObject];
+        NSURL *archive = [[documents URLByAppendingPathComponent:@"Horizon"] URLByAppendingPathComponent:@"horizon-derived.zip"];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:archive.path]) {
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Нужен derived pack"
+                message:@"Сначала импортируй horizon-derived.zip через кнопку «Выбрать ZIP в Файлах» или укажи прямую ссылку. Иначе загрузка игровых ресурсов завершится ошибкой."
+                preferredStyle:UIAlertControllerStyleAlert];
+            [alert addAction:[UIAlertAction actionWithTitle:@"Понятно" style:UIAlertActionStyleDefault handler:nil]];
+            [self presentViewController:alert animated:YES completion:nil];
+            return;
+        }
+    }
     const char *utf8 = url.UTF8String;
     horizon_setup_start(utf8);
     self.started = YES;
     self.startButton.enabled = NO;
     self.startButton.alpha = 0.55;
+    self.importButton.enabled = NO;
+    self.importButton.alpha = 0.55;
     self.stageLabel.text = @"Запускаю подготовку…";
     [self.urlField resignFirstResponder];
 }
@@ -169,6 +184,12 @@
     NSString *state = parts[5];
     NSString *error = parts[6];
 
+    if ([state isEqualToString:@"idle"] && !self.started) {
+        self.detailLabel.text = @"Импортируй ZIP перед началом. Во время подготовки держи Horizon открытым.";
+        self.progressView.progress = 0;
+        return;
+    }
+
     NSDictionary *names = @{
         @"version": @"Проверяю версию Minecraft",
         @"client": @"Загружаю клиентские файлы",
@@ -192,11 +213,15 @@
         self.started = NO;
         self.startButton.enabled = YES;
         self.startButton.alpha = 1.0;
+        self.importButton.enabled = YES;
+        self.importButton.alpha = 1.0;
         [self.startButton setTitle:@"Повторить подготовку" forState:UIControlStateNormal];
     } else if ([state isEqualToString:@"done"] || [state isEqualToString:@"idle"]) {
         self.started = NO;
         self.startButton.enabled = YES;
         self.startButton.alpha = 1.0;
+        self.importButton.enabled = YES;
+        self.importButton.alpha = 1.0;
     }
 }
 @end
