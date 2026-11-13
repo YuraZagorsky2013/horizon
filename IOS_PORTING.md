@@ -8,9 +8,20 @@ Bring Horizon to iOS and iPadOS while preserving the existing Rust game engine, 
 
 Do not replace or simplify the existing world/chunk processing or rendering implementation merely to make an iOS shell easier to build. First identify platform-specific boundaries, then adapt only the host/platform integration around the shared Rust code.
 
-## Existing Android architecture to preserve
+## Repository audit
 
-The Android build uses a native Rust application path. The Android-specific crate and entry point host the shared Horizon client, while the client and renderer crates contain the game implementation. The project uses wgpu with platform graphics backends and has Android-specific lifecycle, input, text input, storage, and download integration.
+The first source inspection confirms a clean separation worth preserving:
+
+- `horizon-client` owns the gameplay library and the shared `game::run_with()` startup path.
+- `horizon-client-render` owns the renderer and rendering systems.
+- `horizon-world` and `horizon-threads` own world systems and thread support.
+- `horizon-android` is a thin Android `cdylib` crate whose library path points directly at `crates/horizon-client/src/android_main.rs`.
+- That Android entry point is explicitly guarded by `cfg(target_os = "android")` and depends on Android's `AndroidApp`, NativeActivity lifecycle, JNI bridge, and Android-specific storage APIs.
+- The Android crate already enables wgpu's `metal` feature alongside its Android graphics features. This is not proof that an iOS surface or app target is configured; the iOS host and target feature set still need to be implemented and built.
+
+**Important consequence:** do not try to compile `android_main.rs` as the iOS entry point. Add a separate iOS host that calls into the shared client/game code, leaving the Android host untouched.
+
+The current shared client manifest has Android-specific `winit` NativeActivity and JNI dependencies behind `cfg(target_os = "android")`, while macOS-specific Objective-C dependencies are behind `cfg(target_os = "macos")`. iOS needs its own dependency and host audit; macOS is not an interchangeable target for iOS.
 
 The following areas should remain shared unless a concrete iOS incompatibility is demonstrated:
 
