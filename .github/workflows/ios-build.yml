@@ -11,6 +11,8 @@ on:
       - "crates/horizon-client-lib/**"
       - "crates/horizon-client-render/**"
       - "crates/horizon-client-input/**"
+      - "packaging/ios/**"
+      - "IOS_PORTING.md"
       - "third_party/winit/**"
       - ".github/workflows/ios-build.yml"
   workflow_dispatch:
