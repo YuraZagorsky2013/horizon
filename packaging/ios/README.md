@@ -54,7 +54,7 @@ through Files or Finder.
 Microsoft account UI and iOS document-picker import/export are still pending.
 
 Worlds, resource packs, mods, and shader packs use the existing folder names
-under `Documents/Horizon`. The next platform milestone is connecting the setup bridge to a native iOS onboarding screen and adding file-import/export, followed by device validation.
+under `Documents/Horizon`. The next platform milestone is device validation, a broader Files import/export flow for worlds and packs, and Microsoft account sign-in.
 
 ## Current validation status
 
