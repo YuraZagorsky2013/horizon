@@ -23,7 +23,7 @@ targets:
         CODE_SIGN_STYLE: Automatic
         LIBRARY_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../../target/$(RUST_TARGET)/release"
         HEADER_SEARCH_PATHS: "$(inherited) $(SRCROOT)"
-        OTHER_LDFLAGS: "$(inherited) -lhorizon_ios -framework Foundation -framework UIKit -framework Metal -framework QuartzCore -framework CoreGraphics -framework AVFoundation -framework GameController"
+        OTHER_LDFLAGS: "$(inherited) -lhorizon_ios -framework Foundation -framework UIKit -framework Metal -framework QuartzCore -framework CoreGraphics -framework AVFoundation -framework GameController -framework UniformTypeIdentifiers"
         "RUST_TARGET[sdk=iphoneos*]": aarch64-apple-ios
         "RUST_TARGET[sdk=iphonesimulator*][arch=arm64]": aarch64-apple-ios-sim
         "RUST_TARGET[sdk=iphonesimulator*][arch=x86_64]": x86_64-apple-ios
