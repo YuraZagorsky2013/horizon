@@ -434,11 +434,39 @@ fn run(home: &Path, derived: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Start or resume first-run resource preparation on a background worker.
+/// This API is shared by Android's JNI screen and the iOS native onboarding host.
+pub fn start(home: PathBuf, derived: String) {
+    {
+        let mut status = STATUS.lock().unwrap_or_else(|e| e.into_inner());
+        if status.as_ref().is_some_and(|status| status.running) { return; }
+        *status = Some(Status { running: true, ..Status::default() });
+    }
+    std::thread::spawn(move || {
+        let result = std::panic::catch_unwind(|| run(&home, &derived))
+            .unwrap_or_else(|_| Err("internal error".into()));
+        if let Err(error) = &result { log::error!("setup: {error}"); }
+        set(|status| {
+            status.running = false;
+            status.done = result.is_ok();
+            status.error = result.err().unwrap_or_default();
+        });
+    });
+}
+
+/// A stable, tab-separated progress snapshot for a native platform UI.
+pub fn status_text() -> String {
+    let status = STATUS.lock().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or_default();
+    let state = if status.running { "run" } else if status.done { "done" } else if !status.error.is_empty() { "error" } else { "idle" };
+    format!("{}\t{}\t{}\t{}\t{}\t{}\t{}", status.stage, FILES_DONE.load(Ordering::Relaxed), FILES_TOTAL.load(Ordering::Relaxed), BYTES_DONE.load(Ordering::Relaxed), BYTES_TOTAL.load(Ordering::Relaxed), state, status.error.replace('\t', " "))
+}
+#[cfg(target_os = "android")]
 fn jstring(env: &mut jni::JNIEnv, s: &jni::objects::JString) -> String {
     env.get_string(s).map(Into::into).unwrap_or_default()
 }
 
 /// 1 when the resources under `home` are ready to play.
+#[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeReady(
     mut env: jni::JNIEnv,
@@ -450,6 +478,7 @@ extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeReady(
 }
 
 /// The derived pack URL this build was made with (HORIZON_DERIVED_URL), else "".
+#[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeDefaultUrl<'a>(
     env: jni::JNIEnv<'a>,
@@ -461,6 +490,7 @@ extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeDefaultUrl<'a
 }
 
 /// Starts (or resumes) the setup on a background thread; does nothing while one runs.
+#[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeStart(
     mut env: jni::JNIEnv,
@@ -470,52 +500,16 @@ extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeStart(
 ) {
     let home = PathBuf::from(jstring(&mut env, &home));
     let url = jstring(&mut env, &url);
-    {
-        let mut s = STATUS.lock().unwrap_or_else(|e| e.into_inner());
-        if s.as_ref().is_some_and(|s| s.running) {
-            return;
-        }
-        *s = Some(Status { running: true, ..Status::default() });
-    }
-    std::thread::spawn(move || {
-        let result = std::panic::catch_unwind(|| run(&home, &url))
-            .unwrap_or_else(|_| Err("internal error".into()));
-        if let Err(e) = &result {
-            log::error!("setup: {e}");
-        }
-        set(|s| {
-            s.running = false;
-            s.done = result.is_ok();
-            s.error = result.err().unwrap_or_default();
-        });
-    });
+    start(home, url);
 }
 
 /// "stage\tfilesDone\tfilesTotal\tbytesDone\tbytesTotal\tstate\terror", state = run/done/error/idle.
+#[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 extern "system" fn Java_dev_horizonlab_horizon_SetupActivity_nativeStatus<'a>(
     env: jni::JNIEnv<'a>,
     _class: jni::objects::JClass,
 ) -> jni::sys::jstring {
-    let s = STATUS.lock().unwrap_or_else(|e| e.into_inner()).clone().unwrap_or_default();
-    let state = if s.running {
-        "run"
-    } else if s.done {
-        "done"
-    } else if !s.error.is_empty() {
-        "error"
-    } else {
-        "idle"
-    };
-    let text = format!(
-        "{}\t{}\t{}\t{}\t{}\t{}\t{}",
-        s.stage,
-        FILES_DONE.load(Ordering::Relaxed),
-        FILES_TOTAL.load(Ordering::Relaxed),
-        BYTES_DONE.load(Ordering::Relaxed),
-        BYTES_TOTAL.load(Ordering::Relaxed),
-        state,
-        s.error.replace('\t', " ")
-    );
+    let text = status_text();
     env.new_string(text).map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }
