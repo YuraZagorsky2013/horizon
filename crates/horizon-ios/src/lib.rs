@@ -26,6 +26,9 @@ pub extern "C" fn horizon_start() {
         .expect("could not create Horizon's Documents directory");
     std::fs::create_dir_all(&cache)
         .expect("could not create Horizon's cache directory");
+    let temp = cache.join("tmp");
+    std::fs::create_dir_all(&temp)
+        .expect("could not create Horizon's temporary directory");
 
     for directory in ["resources", "saves", "resourcepacks", "mods", "shaderpacks"] {
         std::fs::create_dir_all(game_home.join(directory))
@@ -36,6 +39,8 @@ pub extern "C" fn horizon_start() {
     // This runs on the main thread before the game starts its worker threads.
     unsafe {
         std::env::set_var("HORIZON_HOME", &game_home);
+        std::env::set_var("HOME", &game_home);
+        std::env::set_var("TMPDIR", &temp);
         std::env::set_var("HORIZON_RESOURCES", game_home.join("resources"));
         std::env::set_var("HORIZON_CACHE", &cache);
     }
