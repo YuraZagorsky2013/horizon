@@ -78,14 +78,24 @@
     stack.axis = UILayoutConstraintAxisVertical;
     stack.spacing = 18;
     stack.alignment = UIStackViewAlignmentFill;
+    UIScrollView *scroll = [[UIScrollView alloc] init];
+    scroll.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:scroll];
     stack.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:stack];
+    [scroll addSubview:stack];
 
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
-        [stack.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:28],
-        [stack.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-28],
-        [stack.centerYAnchor constraintEqualToAnchor:safe.centerYAnchor],
+        [scroll.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor],
+        [scroll.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor],
+        [scroll.topAnchor constraintEqualToAnchor:safe.topAnchor],
+        [scroll.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor],
+        [stack.topAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.topAnchor constant:24],
+        [stack.bottomAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor constant:-24],
+        [stack.leadingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.leadingAnchor constant:28],
+        [stack.trailingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.trailingAnchor constant:-28],
+        [stack.widthAnchor constraintLessThanOrEqualToConstant:620],
+        [stack.centerXAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.centerXAnchor],
         [self.urlField.heightAnchor constraintEqualToConstant:46],
         [self.progressView.heightAnchor constraintEqualToConstant:4]
     ]];
