@@ -57,8 +57,12 @@ symphonia = { version = "0.5", default-features = false, features = ["ogg", "vor
 unicode-bidi = "0.3.18"
 ureq = { version = "2", default-features = false, features = ["tls"] }
 wgpu = { version = "30.0.1", default-features = false, features = ["std", "parking_lot", "vulkan", "metal", "wgsl", "naga-ir"] }
-winit = "0.30.13"
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 zip = { version = "9.1.3", default-features = false, features = ["deflate"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Desktop Linux only. Apple targets use the native UIKit/Metal backend and do not build Wayland.
+winit = { version = "0.30.13", default-features = false, features = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"] }
 
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "1", default-features = false, features = ["std", "time"] }
