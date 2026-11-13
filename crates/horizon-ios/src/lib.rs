@@ -3,7 +3,11 @@
 //! UIKit owns the process entry point. The small Objective-C main shim calls
 //! this function; winit then creates and runs its UIKit event loop.
 
+use std::ffi::{CStr, c_char};
 use std::path::PathBuf;
+
+#[path = "../../horizon-client/src/android_setup.rs"]
+mod android_setup;
 
 /// Start Horizon from the iOS application entry point.
 ///
@@ -43,4 +47,48 @@ pub extern "C" fn horizon_start() {
     // pipeline, LOD, and worker implementation remain in their shared crates.
     // winit's iOS run_app path calls UIApplicationMain itself.
     horizon_client::entry::main();
+}
+
+
+/// Returns whether the app's Minecraft resources are fully prepared.
+#[unsafe(no_mangle)]
+pub extern "C" fn horizon_setup_ready() -> bool {
+    let home = std::env::var_os("HORIZON_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|path| PathBuf::from(path).join("Documents").join("Horizon")));
+    home.is_some_and(|home| android_setup::ready(&home.join("resources")))
+}
+
+/// Begin or resume the same verified first-run downloader used by Android.
+/// Pass an empty URL to use Documents/Horizon/horizon-derived.zip.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn horizon_setup_start(derived_url: *const c_char) {
+    let derived = if derived_url.is_null() {
+        String::new()
+    } else {
+        // SAFETY: the caller must pass a valid NUL-terminated UTF-8 C string.
+        unsafe { CStr::from_ptr(derived_url) }.to_string_lossy().into_owned()
+    };
+    let home = std::env::var_os("HORIZON_HOME")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|path| PathBuf::from(path).join("Documents").join("Horizon")))
+        .expect("iOS application container HOME is unavailable");
+    android_setup::start(home, derived);
+}
+
+/// Copy the tab-separated setup status into a caller-owned UTF-8 buffer.
+/// Returns the full required byte length excluding the NUL terminator.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn horizon_setup_status(buffer: *mut c_char, capacity: usize) -> usize {
+    let status = android_setup::status_text();
+    let bytes = status.as_bytes();
+    if !buffer.is_null() && capacity > 0 {
+        let count = bytes.len().min(capacity - 1);
+        // SAFETY: the caller guarantees that buffer points to capacity writable bytes.
+        unsafe {
+            std::ptr::copy_nonoverlapping(bytes.as_ptr(), buffer.cast::<u8>(), count);
+            *buffer.add(count) = 0;
+        }
+    }
+    bytes.len()
 }
