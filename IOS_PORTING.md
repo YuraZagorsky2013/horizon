@@ -44,7 +44,7 @@ The host prepares these app-sandbox locations:
 - `Documents/Horizon/resources` for prepared game resources
 - `Library/Caches/Horizon` for disposable cache data
 
-The XcodeGen specification targets iPhone and iPad and selects the Rust target for physical devices and simulators. A macOS GitHub Actions workflow has also been added to cross-compile the Rust static library for device and Apple Silicon simulator targets.
+The XcodeGen specification targets iPhone and iPad and selects the Rust target for physical devices and simulators. A macOS GitHub Actions workflow cross-compiles the Rust static library for device and Apple Silicon simulator targets, then generates and builds the simulator app with Xcode. Winit's default Wayland/X11 feature set has been removed from Apple builds and scoped to Linux; the shared UIKit/Metal backend remains the iOS path.
 
 ### Shared resource setup backend added
 
