@@ -1,4 +1,4 @@
-//! First run on Android: downloads and prepares the game files on the phone, without a PC or Java.
+//! Shared mobile first-run setup: downloads and prepares the game files without a PC or Java.
 //!
 //! The Mojang files come straight from Mojang (piston-meta / piston-data and
 //! resources.download.minecraft.net), each checked by SHA-1, the client JAR against
@@ -6,7 +6,7 @@
 //! languages, panorama and built-in packs. What only the vanilla exporters (Java running Mojang's
 //! code) can make comes from a "derived pack" zip the player points at (a URL or
 //! `files/horizon-derived.zip`), made once by packaging/android/make_derived_pack.sh.
-//! `SetupActivity.java` is the screen; it calls the `native*` functions below.
+//! Android's SetupActivity and the iOS UIKit onboarding call the shared functions below.
 use std::collections::HashSet;
 use std::fs;
 use std::io::{Read, Write};
@@ -80,7 +80,7 @@ fn agent() -> ureq::Agent {
     ureq::AgentBuilder::new()
         .timeout_connect(std::time::Duration::from_secs(20))
         .timeout_read(std::time::Duration::from_secs(60))
-        .user_agent("Horizon-Android-Setup")
+        .user_agent("Horizon-Setup")
         .build()
 }
 
