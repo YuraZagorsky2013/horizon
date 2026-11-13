@@ -39,4 +39,4 @@ targets:
             *) echo "Unsupported iOS build destination: $PLATFORM_NAME/$CURRENT_ARCH"; exit 1 ;;
           esac
           rustup target add "$RUST_TARGET"
-          cargo build --manifest-path "$SRCROOT/../../Cargo.toml" --package horizon-ios --release --target "$RUST_TARGET"
+          cargo build --locked --manifest-path "$SRCROOT/../../Cargo.toml" --package horizon-ios --release --target "$RUST_TARGET"
