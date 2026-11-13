@@ -32,6 +32,30 @@ The following areas should remain shared unless a concrete iOS incompatibility i
 - shared game/client logic
 - resource and asset formats
 
+## Implementation status
+
+### Initial host scaffold added
+
+The `horizon-ios` workspace crate now builds as a Rust static library and exports `horizon_start()`. The Objective-C `main.m` shim calls that function on the process main thread. The shared client entry point then starts the existing winit iOS event loop; the vendored winit iOS backend calls `UIApplicationMain` itself.
+
+The host prepares these app-sandbox locations:
+
+- `Documents/Horizon` for game data and worlds
+- `Documents/Horizon/resources` for prepared game resources
+- `Library/Caches/Horizon` for disposable cache data
+
+The XcodeGen specification targets iPhone and iPad and selects the Rust target for physical devices and simulators. A macOS GitHub Actions workflow has also been added to cross-compile the Rust static library for device and Apple Silicon simulator targets.
+
+### Not yet implemented or validated
+
+- Android's first-run resource downloader and derived-pack setup UI have not yet been ported.
+- Microsoft account sign-in and token refresh UI have not yet been ported.
+- iOS Files/document-picker import and export flows are not yet implemented; the current scaffold exposes the app Documents directory through file sharing.
+- Touch, external keyboard, controller, text-input, and audio behavior still need device-level verification.
+- The Rust targets and Xcode project have not yet completed a successful Apple-toolchain build in this environment. No IPA or working device build is claimed.
+
+The next milestone is a successful device/simulator cross-compile, followed by resource onboarding and platform input/lifecycle validation.
+
 ## iOS/iPadOS work areas
 
 ### 1. Native application host
