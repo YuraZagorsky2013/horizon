@@ -1,12 +1,5 @@
 #import <Foundation/Foundation.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-void horizon_start(void);
-#ifdef __cplusplus
-}
-#endif
+#import "horizon_ios.h"
 
 int main(int argc, char *argv[]) {
     @autoreleasepool {
