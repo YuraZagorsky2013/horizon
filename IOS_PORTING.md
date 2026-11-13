@@ -46,9 +46,21 @@ The host prepares these app-sandbox locations:
 
 The XcodeGen specification targets iPhone and iPad and selects the Rust target for physical devices and simulators. A macOS GitHub Actions workflow has also been added to cross-compile the Rust static library for device and Apple Silicon simulator targets.
 
+### Shared resource setup backend added
+
+The existing Android resource-preparation implementation in
+`horizon-client/src/android_setup.rs` now exposes platform-neutral
+`start()` and `status_text()` APIs. Its JNI adapter is compiled only on
+Android, while the iOS host includes the same Rust implementation and exposes
+a small C bridge for readiness, start, and progress polling.
+
+This reuses the pinned Mojang manifest/client verification, SHA-1 checked
+downloads, resumable partial files, parallel asset fetching, and safe derived
+pack extraction. The native iOS onboarding screen is not connected yet.
+
 ### Not yet implemented or validated
 
-- Android's first-run resource downloader and derived-pack setup UI have not yet been ported.
+- The iOS onboarding UI still needs to call the shared setup bridge and display progress/errors.
 - Microsoft account sign-in and token refresh UI have not yet been ported.
 - iOS Files/document-picker import and export flows are not yet implemented; the current scaffold exposes the app Documents directory through file sharing.
 - Touch, external keyboard, controller, text-input, and audio behavior still need device-level verification.
