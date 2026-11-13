@@ -48,7 +48,7 @@ horizon-native-abi = { path = "../horizon-native-abi", features = ["host"] }
 horizon-mod-sdk = { path = "../horizon-mod-sdk", features = ["host"] }
 postcard = { version = "1", features = ["alloc"] }
 wgpu = { version = "30.0.1", default-features = false, features = ["std", "parking_lot", "vulkan", "metal", "wgsl", "naga-ir"] }
-winit = "0.30.13"
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 pollster = "0.4"
 bytemuck = { version = "1.24", features = ["derive"] }
 glam = "0.30"
@@ -84,6 +84,10 @@ unicode-bidi = "0.3.18"
 # `LevelStorageAccess.estimateDiskSpace`: usable disk space, without unsafe code on Windows.
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Desktop Linux only. Apple targets use the native UIKit/Metal backend and do not build Wayland.
+winit = { version = "0.30.13", default-features = false, features = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"] }
+
 [target.'cfg(unix)'.dependencies]
 # The server thread's CPU time per tick (`HORIZON_SPIKES`, spans.rs).
 rustix = { version = "1", default-features = false, features = ["std", "time", "process", "fs"] }
@@ -112,7 +116,7 @@ wgpu = { version = "30.0.1", default-features = false, features = ["gles"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 # Android: the NativeActivity glue (no Java), see ANDROID.md.
-winit = { version = "0.30.13", features = ["android-native-activity"] }
+winit = { version = "0.30.13", default-features = false, features = ["android-native-activity"] }
 # The soft keyboard bridge and the activity calls (HorizonActivity.java, game/android_ime.rs).
 jni = "0.21"
 libc = "0.2"
