@@ -12,6 +12,7 @@
 @property(nonatomic, strong) UIButton *importButton;
 @property(nonatomic, strong) NSTimer *statusTimer;
 @property(nonatomic, assign) BOOL started;
+@property(nonatomic, assign) BOOL readyHandled;
 @end
 
 @implementation HorizonSetupViewController
@@ -164,9 +165,18 @@
 
 - (void)refreshStatus {
     if (horizon_setup_ready()) {
-        [self.statusTimer invalidate];
-        self.statusTimer = nil;
-        [self dismissViewControllerAnimated:YES completion:nil];
+        if (!self.readyHandled) {
+            self.readyHandled = YES;
+            [self.statusTimer invalidate];
+            self.statusTimer = nil;
+            self.stageLabel.text = @"Ресурсы готовы";
+            self.detailLabel.text = @"Подготовка завершена. Закрой Horizon и открой его снова, чтобы запустить игру.";
+            self.urlField.hidden = YES;
+            self.importButton.hidden = YES;
+            self.startButton.hidden = YES;
+            self.progressView.progress = 1.0;
+            self.errorLabel.text = @"";
+        }
         return;
     }
 
