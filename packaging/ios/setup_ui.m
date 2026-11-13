@@ -97,6 +97,7 @@
         [stack.leadingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.leadingAnchor constant:28],
         [stack.trailingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.trailingAnchor constant:-28],
         [stack.widthAnchor constraintLessThanOrEqualToConstant:620],
+        [stack.widthAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor constant:-56],
         [stack.centerXAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.centerXAnchor],
         [self.urlField.heightAnchor constraintEqualToConstant:46],
         [self.progressView.heightAnchor constraintEqualToConstant:4]
@@ -195,7 +196,13 @@
     NSString *error = parts[6];
 
     if ([state isEqualToString:@"idle"] && !self.started) {
-        self.detailLabel.text = @"Импортируй ZIP перед началом. Во время подготовки держи Horizon открытым.";
+        NSURL *documents = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] firstObject];
+        NSURL *archive = [[documents URLByAppendingPathComponent:@"Horizon"] URLByAppendingPathComponent:@"horizon-derived.zip"];
+        BOOL hasArchive = [[NSFileManager defaultManager] fileExistsAtPath:archive.path];
+        BOOL hasUrl = self.urlField.text.length > 0;
+        self.detailLabel.text = (hasArchive || hasUrl)
+            ? @"Пакет данных готов. Можно начинать подготовку."
+            : @"Импортируй ZIP перед началом. Во время подготовки держи Horizon открытым.";
         self.progressView.progress = 0;
         return;
     }
