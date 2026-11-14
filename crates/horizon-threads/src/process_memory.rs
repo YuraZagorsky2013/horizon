@@ -92,7 +92,7 @@ pub fn resident_bytes() -> Option<u64> {
     None
 }
 
-#[cfg(all(test, any(windows, target_os = "linux", target_vendor = "apple")))]
+#[cfg(all(test, any(windows, target_os = "linux", target_os = "macos")))]
 mod tests {
     use super::*;
 
