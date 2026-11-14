@@ -86,6 +86,10 @@
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     [scroll addSubview:stack];
 
+    NSLayoutConstraint *preferredStackWidth =
+        [stack.widthAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor constant:-56];
+    preferredStackWidth.priority = UILayoutPriorityDefaultHigh;
+
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
         [scroll.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor],
@@ -97,7 +101,7 @@
         [stack.leadingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.leadingAnchor constant:28],
         [stack.trailingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.trailingAnchor constant:-28],
         [stack.widthAnchor constraintLessThanOrEqualToConstant:620],
-        [stack.widthAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor constant:-56],
+        preferredStackWidth,
         [stack.centerXAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.centerXAnchor],
         [self.urlField.heightAnchor constraintEqualToConstant:46],
         [self.progressView.heightAnchor constraintEqualToConstant:4]
