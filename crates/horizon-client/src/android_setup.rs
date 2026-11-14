@@ -402,7 +402,8 @@ fn run(home: &Path, derived: &str) -> Result<(), String> {
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i).map_err(|e| e.to_string())?;
         let Some(relative) = entry.enclosed_name() else {
-            return Err(format!("derived pack: bad path {}", entry.name()));
+            let entry_name = entry.name().map(|name| name.into_owned()).unwrap_or_else(|error| format!("<invalid name: {error}>"));
+            return Err(format!("derived pack: bad path {entry_name}"));
         };
         let target = resources.join(relative);
         if entry.is_dir() {
