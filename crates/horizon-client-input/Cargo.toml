@@ -8,7 +8,9 @@ description = "The client's input layer: key bindings and their names, mouse, co
 
 [dependencies]
 horizon-client-core = { path = "../horizon-client-core" }
-winit = "0.30.13"
+# Keep the shared input layer on raw-window-handle only by default. Desktop
+# Linux window-system backends are enabled below for Linux targets only.
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 # The window icon.
 horizon-theme = { path = "../horizon-theme" }
 png = "0.18"
@@ -20,6 +22,9 @@ controllers = ["dep:horizon-dualsense"]
 
 [lints]
 workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+winit = { version = "0.30.13", default-features = false, features = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 arboard = { version = "3.6.1", default-features = false, features = ["wayland-data-control"] }
