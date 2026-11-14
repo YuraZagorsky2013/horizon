@@ -468,7 +468,7 @@ impl Default for Touches {
             trigger_release: [0; 2],
             sneaking: false,
             sprinting: false,
-            layout: if cfg!(target_os = "android") { TouchLayout::load() } else { TouchLayout::default() },
+            layout: if cfg!(any(target_os = "android", target_os = "ios")) { TouchLayout::load() } else { TouchLayout::default() },
             pressing: None,
             editing: false,
             selected: None,
@@ -479,7 +479,7 @@ impl Default for Touches {
             hardware: false,
             mouse: false,
             pointer_captured: None,
-            buttons: if cfg!(target_os = "android") { load_buttons() } else { Vec::new() },
+            buttons: if cfg!(any(target_os = "android", target_os = "ios")) { load_buttons() } else { Vec::new() },
             selected_button: None,
         }
     }
@@ -824,13 +824,13 @@ impl Game<'_> {
     }
 
     fn touch_controls_shown(&self) -> bool {
-        cfg!(target_os = "android") && self.player.is_some() && !self.pad_in_menu() && !self.touch.hardware
+        cfg!(any(target_os = "android", target_os = "ios")) && self.player.is_some() && !self.pad_in_menu() && !self.touch.hardware
     }
 
     /// Over a screen in the world (inventory, containers, pause, chat...):
     /// a close button, as Escape.
     fn touch_close_shown(&self) -> bool {
-        cfg!(target_os = "android")
+        cfg!(any(target_os = "android", target_os = "ios"))
             && self.player.is_some()
             && self.title.is_none()
             && self.pad_in_menu()
