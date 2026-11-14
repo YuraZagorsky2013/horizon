@@ -235,8 +235,9 @@ impl Game<'_> {
             .collect();
         self.open_prebuilt_mods();
     }
-    /// Opens the mods that are on and not open yet.
-    fn open_prebuilt_mods(&mut self) {
+    /// Opens the mods that are on and not open yet. Native libraries are Android-only.
+    #[cfg(target_os = "android")]
+        fn open_prebuilt_mods(&mut self) {
         let home = Self::options_path().with_file_name(mod_list::DIR);
         for i in 0..self.prebuilt.mods.len() {
             let m = &self.prebuilt.mods[i];
@@ -276,6 +277,8 @@ impl Game<'_> {
             }
         }
     }
+    #[cfg(not(target_os = "android"))]
+    fn open_prebuilt_mods(&mut self) {}
     /// What a mod asked for in a call.
     fn prebuilt_outbox(&mut self, id: &str, out: Outbox) {
         for line in out.log {
