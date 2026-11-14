@@ -90,6 +90,7 @@ struct Columns {
 }
 
 /// Opens `lib` as an SDK mod: `Ok(false)` when it isn't one (a plain ABI mod).
+#[cfg(target_os = "android")]
 pub(super) fn open(id: &str, name: &str, title: &str, lib: &std::path::Path) -> Result<bool, String> {
     if MODS.with(|m| m.borrow().iter().any(|m| m.id == id)) {
         return Ok(true);
@@ -120,6 +121,13 @@ pub(super) fn open(id: &str, name: &str, title: &str, lib: &std::path::Path) -> 
         })
     });
     Ok(true)
+}
+
+
+#[cfg(not(target_os = "android"))]
+pub(super) fn open(_id: &str, _name: &str, _title: &str, _lib: &std::path::Path) -> Result<bool, String> {
+    // iOS and desktop hosts do not load downloaded native mod libraries.
+    Ok(false)
 }
 
 fn ids() -> Vec<String> {
