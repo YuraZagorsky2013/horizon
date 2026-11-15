@@ -17,13 +17,13 @@ The first source inspection confirms a clean separation worth preserving:
 - `horizon-world` and `horizon-threads` own world systems and thread support.
 - `horizon-android` is a thin Android `cdylib` crate whose library path points directly at `crates/horizon-client/src/android_main.rs`.
 - That Android entry point is explicitly guarded by `cfg(target_os = "android")` and depends on Android's `AndroidApp`, NativeActivity lifecycle, JNI bridge, and Android-specific storage APIs.
-- The Android crate already enables wgpu's `metal` feature alongside its Android graphics features. This is not proof that an iOS surface or app target is configured; the iOS host and target feature set still need to be implemented and built.
+- The shared renderer enables wgpu's Metal feature, but that alone does not prove an iOS app can create and present a working Metal surface.
 
-**Important consequence:** do not try to compile `android_main.rs` as the iOS entry point. Add a separate iOS host that calls into the shared client/game code, leaving the Android host untouched.
+**Important consequence:** do not try to compile `android_main.rs` as the iOS entry point. The separate iOS host calls into the shared client/game code and leaves the Android host intact.
 
-The current shared client manifest has Android-specific `winit` NativeActivity and JNI dependencies behind `cfg(target_os = "android")`, while macOS-specific Objective-C dependencies are behind `cfg(target_os = "macos")`. iOS needs its own dependency and host audit; macOS is not an interchangeable target for iOS.
+The shared client uses Android-specific winit NativeActivity and JNI dependencies behind `cfg(target_os = "android")`, while macOS-specific Objective-C dependencies are behind `cfg(target_os = "macos")`. iOS is handled as its own target, not as interchangeable macOS or Android.
 
-The following areas should remain shared unless a concrete iOS incompatibility is demonstrated:
+The following areas remain shared:
 
 - world and chunk processing
 - worker/thread scheduling and chunk streaming
@@ -34,9 +34,9 @@ The following areas should remain shared unless a concrete iOS incompatibility i
 
 ## Implementation status
 
-### Initial host scaffold added
+### Native iOS/iPadOS host
 
-The `horizon-ios` workspace crate now builds as a Rust static library and exports `horizon_start()`. The Objective-C `main.m` shim calls that function on the process main thread. The shared client entry point then starts the existing winit iOS event loop; the vendored winit iOS backend calls `UIApplicationMain` itself.
+The `horizon-ios` workspace crate builds as a Rust static library and exports `horizon_start()`. The Objective-C `main.m` shim registers the onboarding overlay and calls that function on the process main thread. The shared client entry point starts the existing winit iOS event loop; the vendored winit iOS backend owns the single `UIApplicationMain` sequence.
 
 The host prepares these app-sandbox locations:
 
@@ -44,58 +44,109 @@ The host prepares these app-sandbox locations:
 - `Documents/Horizon/resources` for prepared game resources
 - `Library/Caches/Horizon` for disposable cache data
 
-The XcodeGen specification targets iPhone and iPad and selects the Rust target for physical devices and simulators. A macOS GitHub Actions workflow cross-compiles the Rust static library for device and Apple Silicon simulator targets, then generates and builds the simulator app with Xcode. Winit's default Wayland/X11 feature set has been removed from Apple builds and scoped to Linux; the shared UIKit/Metal backend remains the iOS path.
+The XcodeGen specification targets iPhone and iPad. Its build phase selects the Rust target for physical devices and simulator architectures. Apple builds avoid desktop Wayland/X11 dependencies; the iOS path uses UIKit and wgpu's Metal backend.
 
-### Shared resource setup backend added
+### Native onboarding and shared resource setup
 
 The existing Android resource-preparation implementation in
-`horizon-client/src/android_setup.rs` now exposes platform-neutral
-`start()` and `status_text()` APIs. Its JNI adapter is compiled only on
-Android, while the iOS host includes the same Rust implementation and exposes
-a small C bridge for readiness, start, and progress polling.
+`horizon-client/src/android_setup.rs` exposes platform-neutral
+`start()` and `status_text()` APIs. Its JNI adapter remains Android-only.
+The iOS host includes the same Rust implementation and exports a C bridge for
+readiness, starting setup, and polling progress.
 
-This reuses the pinned Mojang manifest/client verification, SHA-1 checked
-downloads, resumable partial files, parallel asset fetching, and safe derived
-pack extraction. A native UIKit onboarding screen is now included in the Xcode target. It imports the derived ZIP via the Files document picker, starts the shared setup routine, and polls progress/errors after winit's one UIKit launch sequence. When resources become ready, it asks the user to relaunch Horizon because the existing game entry point has already entered its no-resources screen.
+The native UIKit onboarding screen is included in the Xcode target. It:
 
-### Not yet implemented or validated
+- appears when the resource marker says the game is not ready;
+- imports `horizon-derived.zip` with `UIDocumentPickerViewController` into
+  `Documents/Horizon/horizon-derived.zip`;
+- accepts a direct archive URL as an alternative;
+- starts the shared downloader/extractor and polls its stage, file/byte counts,
+  and errors;
+- allows retry after failure.
 
-- The onboarding overlay still needs validation on a simulator and physical device; it is presented after the winit launch notification.
-- Microsoft account sign-in and token refresh UI have not yet been ported.
-- Files document-picker import for the derived ZIP is implemented in the onboarding screen; general world/resource-pack import and export workflows remain pending.
-- The vendored winit iOS backend already translates UIKit touch/gesture events and basic text input into winit events, and observes active/background/foreground/memory-warning notifications. The game-level control mapping, external keyboard behavior, and controller support still need device verification.
-- The client renderer uses optional cpal output with Symphonia Vorbis decoding; the iOS Core Audio backend and audio-session behavior have not been validated.
-- wgpu enables its Metal feature and winit's iOS window backend provides the UIKit/Metal presentation path, but the actual Horizon renderer surface creation and GPU pipeline have not yet passed an iOS build or device test.
-- Android Microsoft sign-in is implemented in Java (`Msa`, `MsaLoginActivity`, `ProfileActivity`) and publishes a private session JSON consumed by `android_msa.rs`. The WebView login UI and Android JNI refresh callback are not portable. The iOS port needs an external-browser OAuth flow such as `ASWebAuthenticationSession` plus secure Keychain token storage; do not copy the Android WebView credential flow.
-- The Rust targets and Xcode project have not yet completed a successful Apple-toolchain build in this environment. No IPA or working device build is claimed.
+The shared setup keeps the pinned Mojang manifest/client checks, SHA-1
+verification, resumable partial downloads, parallel asset fetching, and safe
+derived-pack extraction. Once setup finishes, the overlay asks the player to
+close and reopen Horizon because this launch has already entered the existing
+no-resources screen. Background downloading and an in-process game restart are
+not implemented.
 
-The next milestone is a successful device/simulator cross-compile, followed by resource onboarding and platform input/lifecycle validation.
+### Build validation
+
+CI has successfully cross-compiled the Rust static library for
+`aarch64-apple-ios` and `aarch64-apple-ios-sim`. XcodeGen also successfully
+generated the Xcode project.
+
+The first Xcode simulator-app build failed in the custom Rust build phase:
+Xcode supplied `CURRENT_ARCH=undefined_arch` for the generic simulator
+destination, while the script only accepted concrete `arm64` or `x86_64`.
+The build phase now resolves the generic destination from `ARCHS`, and the CI
+simulator build is constrained to `arm64`, matching the already-built Rust
+simulator target. This correction is committed to `android-port`; the new
+CI result is still pending.
+
+A successful Rust static-library cross-compile is not the same as a successful
+Xcode app build or runtime validation. No simulator launch, physical-device
+launch, signed IPA, or App Store-ready build is claimed.
+
+## Not yet implemented or validated
+
+- **Microsoft account sign-in:** not ported. Android's Java/WebView login,
+  JNI refresh callback, and private session-file handoff are Android-specific.
+  iOS needs its own browser-based OAuth flow, such as
+  `ASWebAuthenticationSession`, and secure Keychain token storage.
+- **Files workflows:** derived ZIP import is implemented. General world,
+  resource-pack, mod, and shader-pack import/export flows remain pending.
+- **Touch:** the shared in-game touch controls are now enabled for iOS, and
+  vendored winit translates UIKit touch and gesture events. The actual game
+  controls still need simulator/device interaction testing.
+- **Keyboard and text input:** the winit iOS view implements UIKit
+  `UIKeyInput`, can become first responder, and maps committed text/backspace
+  into winit events. Its IME cursor-area API is currently ignored. Software
+  keyboard composition, focus, external hardware-keyboard input, and shortcuts
+  have not been validated in Horizon on a device.
+- **Audio:** the client uses optional cpal output with Symphonia Vorbis
+  decoding. The Rust iOS build compiles the Core Audio dependency path, but
+  playback, audio-session configuration, interruptions, and route changes
+  remain unverified.
+- **Metal:** wgpu enables Metal, and the vendored iOS winit window uses a
+  `CAMetalLayer` presentation path. The Rust renderer compiles for iOS, but
+  the Xcode app build and actual GPU surface/pipeline execution still need
+  confirmation.
+- **Lifecycle:** winit observes launch, active/inactive, foreground/background,
+  termination, and memory-warning notifications and emits the corresponding
+  events. Game pause/resume, background resource-download interruption, and
+  restoration still require runtime validation.
+- **Controllers:** the iOS host currently disables the optional gilrs backend
+  until an iOS-native controller path is wired and tested.
+- **Runtime and packaging:** no simulator launch, physical iPhone/iPad test,
+  signed IPA, or distribution build has been verified.
 
 ## iOS/iPadOS work areas
 
 ### 1. Native application host
 
-Add an iOS application target and a minimal native host that initializes the existing Rust client. Use the iOS application lifecycle and UIKit integration rather than Android NativeActivity. Keep the host thin and avoid moving game logic into Swift.
+Keep the iOS application host thin and initialize the existing Rust client through UIKit/winit. Do not start a second application lifecycle or move game logic into Swift.
 
 ### 2. Graphics surface
 
-Audit the current wgpu version and enabled features for iOS. Establish a Metal-backed surface using the supported iOS integration path. Reuse the existing renderer and shaders. Any required surface or presentation changes must be isolated to platform initialization and presentation code.
+Use the existing wgpu Metal backend and the iOS winit surface path. Reuse the existing renderer and shaders. Any required surface or presentation changes must be isolated to platform initialization and presentation code.
 
 ### 3. Input
 
-Implement iOS/iPadOS touch input and map it into the existing shared input abstraction. Preserve support for external keyboards and game controllers where the current input layer allows it. Add platform-specific text-input handling without changing gameplay semantics.
+Preserve shared touch controls and map UIKit touch events into the existing input abstraction. Complete and validate software text input, external keyboards, and supported game controllers without changing gameplay semantics.
 
 ### 4. Files and permissions
 
-The first-run screen uses `UIDocumentPickerViewController` to import the required derived ZIP into `Documents/Horizon/horizon-derived.zip`. General world, resource-pack, mod, and shader-pack import/export workflows still need dedicated picker flows. Keep world saves, resource packs, configuration, and downloaded game assets in the existing shared formats. Make import/export explicit and user-controlled.
+Use `UIDocumentPickerViewController` for explicit user-controlled import/export. The first-run screen currently imports the required derived ZIP; general world, resource-pack, mod, and shader-pack workflows still need dedicated picker flows.
 
 ### 5. Audio
 
-Audit the current audio backend for iOS support and select a compatible native backend if needed. Keep the shared audio interface and game audio behavior unchanged.
+Verify the iOS Core Audio path, session category, interruptions, and output routing. Keep the shared audio interface and game audio behavior unchanged.
 
 ### 6. Conditional compilation and dependencies
 
-Review every Android-only dependency and every `cfg(target_os = "android")` / non-Android assumption. Introduce narrowly scoped iOS implementations or feature gates. Do not globally disable shared functionality to make compilation pass.
+Review every Android-only dependency and every `cfg(target_os = "android")` assumption. Introduce narrowly scoped iOS implementations or feature gates. Do not globally disable shared functionality to make compilation pass.
 
 ### 7. Threading and performance validation
 
@@ -103,25 +154,24 @@ Verify iOS thread and memory constraints against the existing worker architectur
 
 ## Suggested implementation sequence
 
-1. Inventory platform-specific code and Cargo features.
-2. Confirm the Rust target and dependency support for iOS device and simulator.
-3. Add the smallest possible iOS host and application project.
-4. Bring up a Metal surface with the existing renderer.
-5. Wire lifecycle, input, text input, audio, and sandbox file access.
-6. Build and run on a physical iPhone/iPad.
-7. Validate world loading, chunk workers, distant chunks, saves, and long-session stability.
-8. Document signing, build, and release steps.
+1. Complete the Xcode simulator-app build after the generic-architecture fix.
+2. Launch the app in an iOS simulator and validate the onboarding and Files import.
+3. Validate Metal presentation, touch, text input, audio, and lifecycle behavior.
+4. Port Microsoft sign-in and general Files workflows.
+5. Build, sign, and run on a physical iPhone/iPad.
+6. Validate world loading, chunk workers, distant chunks, saves, and long-session stability.
+7. Document signing, build, and release steps.
 
 ## Acceptance criteria
 
 - Existing shared Rust renderer remains in use.
 - Existing world/chunk processing and worker architecture remain in use.
 - iOS/iPadOS app launches and presents the game through Metal.
-- Touch, keyboard, and supported controllers work.
+- Touch, text input, and supported controllers work.
 - Worlds and configuration can be imported, saved, and exported through supported iOS workflows.
 - App handles background/foreground transitions and memory pressure without corrupting worlds.
 - Device build and runtime behavior are verified; a successful desktop or simulator compile alone is not considered a completed port.
 
 ## Build environment note
 
-A signed iOS application build and device deployment require macOS with a compatible Xcode toolchain and signing configuration. Repository changes can be prepared independently, but an IPA must not be claimed until it has actually been built and tested.
+A signed iOS application build and device deployment require macOS with a compatible Xcode toolchain and signing configuration. Repository source changes can be prepared independently, but an IPA must not be claimed until it has actually been built and tested.
