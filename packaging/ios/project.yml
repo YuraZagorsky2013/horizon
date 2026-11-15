@@ -32,11 +32,37 @@ targets:
         basedOnDependencyAnalysis: false
         script: |
           set -eu
-          case "$PLATFORM_NAME:$CURRENT_ARCH" in
-            iphoneos:*) RUST_TARGET=aarch64-apple-ios ;;
-            iphonesimulator:arm64) RUST_TARGET=aarch64-apple-ios-sim ;;
-            iphonesimulator:x86_64) RUST_TARGET=x86_64-apple-ios ;;
-            *) echo "Unsupported iOS build destination: $PLATFORM_NAME/$CURRENT_ARCH"; exit 1 ;;
-          esac
-          rustup target add "$RUST_TARGET"
-          cargo build --locked --manifest-path "$SRCROOT/../../Cargo.toml" --package horizon-ios --release --target "$RUST_TARGET"
+          build_rust_target() {
+            rustup target add "$1"
+            cargo build --locked --manifest-path "$SRCROOT/../../Cargo.toml" --package horizon-ios --release --target "$1"
+          }
+
+          # Xcode runs aggregate build phases for a generic simulator destination
+          # with CURRENT_ARCH=undefined_arch. Build every simulator architecture
+          # selected by ARCHS so each later link step finds its matching Rust library.
+          if [ "$PLATFORM_NAME" = "iphonesimulator" ] && [ "$CURRENT_ARCH" = "undefined_arch" ]; then
+            built=0
+            for arch in $ARCHS; do
+              case "$arch" in
+                arm64)
+                  build_rust_target aarch64-apple-ios-sim
+                  built=1
+                  ;;
+                x86_64)
+                  build_rust_target x86_64-apple-ios
+                  built=1
+                  ;;
+              esac
+            done
+            if [ "$built" -eq 0 ]; then
+              echo "No supported iOS Simulator architecture in ARCHS=$ARCHS"
+              exit 1
+            fi
+          else
+            case "$PLATFORM_NAME:$CURRENT_ARCH" in
+              iphoneos:*) build_rust_target aarch64-apple-ios ;;
+              iphonesimulator:arm64) build_rust_target aarch64-apple-ios-sim ;;
+              iphonesimulator:x86_64) build_rust_target x86_64-apple-ios ;;
+              *) echo "Unsupported iOS build destination: $PLATFORM_NAME/$CURRENT_ARCH"; exit 1 ;;
+            esac
+          fi
