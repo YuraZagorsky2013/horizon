@@ -81,5 +81,6 @@ jobs:
             -scheme Horizon \
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
+            ARCHS=arm64 \
             CODE_SIGNING_ALLOWED=NO \
             build
